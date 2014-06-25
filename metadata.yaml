@@ -1,4 +1,4 @@
-name: charm-bootstrap-wsgi
+name: wsgi-app
 summary: Bootstrap your wsgi service charm.
 maintainer: Developer Account <Developer.Account@localhost>
 description: |
