@@ -6,7 +6,7 @@
   tags:
     - config-changed
   file:
-    src: "{{ code_dir }}/{{ code_archive | dirname }}"
+    src: "{{ code_dir }}/{{ build_label }}"
     dest: "{{ code_dir }}/latest"
     owner: "{{ wsgi_user }}"
     group: "{{ wsgi_group }}"

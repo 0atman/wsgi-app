@@ -1,27 +1,27 @@
 ---
-- name: Copy code_archive from the charm if not using code_assets_uri
+- name: Copy code archive from the charm if not using code_assets_uri
   tags:
     - config-changed
   copy:
-    src: "{{ charm_dir }}/files/{{ code_archive }}"
-    dest: "{{ archives_dir }}/{{ code_archive }}"
+    src: "{{ charm_dir }}/files/{{ build_label }}/{{ archive_filename }}"
+    dest: "{{ archives_dir }}/{{ build_label }}/{{ archive_filename }}"
     force: no
     owner: "{{ wsgi_user }}"
     group: "{{ wsgi_group }}"
     mode: 0644
-  when: code_assets_uri == ""
+  when: code_assets_uri == "" and build_label > "" and archive_filename > ""
 
 - name: Download code tarball archive from the code assets uri
   tags:
     - config-changed
   get_url:
-    url: "{{ code_assets_uri }}/{{ code_archive }}"
-    dest: "{{ archives_dir }}/{{ code_archive }}"
+    url: "{{ code_assets_uri }}/{{ build_label }}/{{ archive_filename }}"
+    dest: "{{ archives_dir }}/{{ build_label }}/{{ archive_filename }}"
     force: no
     owner: "{{ wsgi_user }}"
     group: "{{ wsgi_group }}"
     mode: 0644
-  when: code_assets_uri != ""
+  when: code_assets_uri != "" and build_label > "" and archive_filename > ""
 
 - name: Check if archive is already extracted
   tags:
@@ -33,11 +33,11 @@
   tags:
     - config-changed
   unarchive:
-    src: "{{ archives_dir }}/{{ code_archive }}"
+    src: "{{ archives_dir }}/{{ build_label }}/{{ archive_filename }}"
     dest: "{{ current_code_dir }}"
     owner: "{{ wsgi_user }}"
     group: "{{ wsgi_group }}"
-  when: already_extracted.stat.exists == False
+  when: already_extracted.stat.exists == False and build_label > "" and archive_filename > ""
 
 # The following is only necessary because the unarchived code files
 # won't have the correct user/group.
