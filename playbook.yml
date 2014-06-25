@@ -1,9 +1,6 @@
 ---
 - hosts: localhost
 
-  vars:
-    - code_archive: "{{ build_label }}/{{ archive_filename }}"
-
   roles:
     - role: wsgi-app
       listen_port: 8080
