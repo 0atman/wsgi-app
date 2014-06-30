@@ -1,0 +1,19 @@
+#!/usr/bin/env python
+
+from os import path, remove
+from charmhelpers.core.hookenv import config, local_unit
+
+# Config file path
+unit_name = local_unit().replace('/', '-')
+config_file = path.join(
+    "/srv",
+    unit_name,
+    "code",
+    config('build_label'),
+    config('relation_config_dir'),
+    'pgsql.py'
+)
+
+# Remove the file
+if path.isfile(config_file):
+    remove(config_file)
