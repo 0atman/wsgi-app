@@ -41,3 +41,8 @@
       tags:
         - config-changed
       when: build_label > '' and archive_filename > '' and requirements_path > "" and pip_cache_path > ""
+
+    # Run make target
+    # ===
+    - name: Run update make target
+      command: "make -C {{ current_code_dir }} {{ update_make_target }} || echo 'No make target defined: {{ update_make_target }}' "

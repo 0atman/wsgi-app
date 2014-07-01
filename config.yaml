@@ -64,3 +64,11 @@ options:
             When the charm creates relations, it will store settings files
             with configuration information about the relation
             at: <settings_dir>/<relation_name>.py.
+    update_make_target:
+        default: "update"
+        type: string
+        description: >
+            After the code is extracted, the charm will run:
+            $ make <update_make_target>
+            in the project directory. You can define this make target
+            in your project to run any commands necessary to update your app
