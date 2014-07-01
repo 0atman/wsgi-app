@@ -19,11 +19,17 @@ def parent_dir(dir_path):
     return path.abspath(path.join(dir_path, pardir))
 
 
-def setup_database_relation(database_name, host, user, password):
+def setup_database_relation(
+    database_name, host, user,
+    password, build_label
+):
     """
     Prepare the charm for postgres database relation
     By putting database settings in a python settings file
     """
+
+    if not build_label:
+        raise EnvironmentError('build_label is not defined')
 
     # Get database template
     charm_dir = parent_dir(__file__)
@@ -39,7 +45,7 @@ def setup_database_relation(database_name, host, user, password):
         "/srv",
         unit_name,
         "code",
-        config('build_label'),
+        build_label,
         config('relation_config_dir')
     )
 
@@ -65,9 +71,11 @@ def setup_database_relation(database_name, host, user, password):
 
 database_name = relation_get("database")
 host = relation_get("host")
+build_label = config('build_label')
 
 if database_name and host:
     setup_database_relation(
         database_name, host,
-        relation_get("user"), relation_get("password")
+        relation_get("user"), relation_get("password"),
+        build_label
     )
