@@ -2,16 +2,12 @@
 
 # System
 import sys
-from time import time
-from os import path, makedirs, remove
 
 # Local
 import charmhelpers.contrib.ansible
-from helpers import parent_dir
-from jinja2 import Environment, FileSystemLoader
-from charmhelpers.fetch import apt_install
+from helpers import build_url
 from charmhelpers.core.hookenv import (
-    relation_get, config, local_unit, relation_set
+    relation_get
 )
 
 # Create the hooks helper which automatically registers the
@@ -25,71 +21,38 @@ hooks = charmhelpers.contrib.ansible.AnsibleHooks(
 
 @hooks.hook('pgsql-relation-broken')
 def pgsql_relation_broken():
-    build_label = config('build_label')
-
-    # Config file path
-    if build_label:
-        unit_name = local_unit().replace('/', '-')
-        config_file = path.join(
-            "/srv",
-            unit_name,
-            "code",
-            build_label,
-            config('relation_config_dir'),
-            'pgsql.py'
-        )
-
-    # Remove the file
-    if path.isfile(config_file):
-        remove(config_file)
+    # Remove the postgres environment variable
+    NotImplementedError(
+        '''
+        Clear the database URL environment variable
+        '''
+    )
 
 
 @hooks.hook('pgsql-relation-joined', 'pgsql-relation-changed')
 def pgsql_relation():
     database_name = relation_get("database")
-    host = relation_get("host")
-    build_label = config('build_label')
+    database_host = relation_get("host")
 
-    if database_name and host and build_label:
+    if database_name and database_host:
         # Prepare the charm for postgres database relation
         # By putting database settings in a python settings file
 
-        # Get database template
-        charm_dir = parent_dir(__file__)
-        jinja_env = Environment(loader=FileSystemLoader(charm_dir))
-        database_template = jinja_env.get_template('templates/pgsql.tmpl')
-
-        # Get database information
-        apt_install(['python-psycopg2', 'postgresql-client'])
-
-        # Get relation settings directory
-        unit_name = local_unit().replace('/', '-')
-        config_dir = path.join(
-            "/srv",
-            unit_name,
-            "code",
-            build_label,
-            config('relation_config_dir')
+        build_url(
+            scheme='postgresql',
+            domain=database_host,
+            port=relation_get("port"),
+            username=relation_get("user"),
+            password=relation_get("password"),
+            path=database_name
         )
 
-        # Make sure dir exists
-        if not path.isdir(config_dir):
-            makedirs(config_dir)
-
-        # Database settings
-        relation_context = database_template.render({
-            "name": database_name,
-            "host": host,
-            "user": relation_get("user"),
-            "password": relation_get("password")
-        })
-
-        # Write settings
-        with open(path.join(config_dir, 'pgsql.py'), 'a') as config_file:
-            config_file.write(relation_context)
-
-        # Set timestamp to trigger service restart
-        relation_set(wsgi_timestamp=time())
+    NotImplementedError(
+        '''
+        Set the environment variable
+        for the database URL in gunicorn
+        '''
+    )
 
 
 @hooks.hook('install', 'upgrade-charm')
