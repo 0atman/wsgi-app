@@ -49,3 +49,4 @@
         - pgsql-relation-changed
         - wsgi-file-relation-changed
       command: "make -C {{ current_code_dir }} {{ update_make_target }} || echo 'No make target defined: {{ update_make_target }}' "
+      when: build_label > '' and archive_filename > ''
