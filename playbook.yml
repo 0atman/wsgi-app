@@ -45,7 +45,6 @@
     # ===
     - name: Run update make target
       tags:
-        - install
         - config-changed
         - pgsql-relation-changed
         - wsgi-file-relation-changed
