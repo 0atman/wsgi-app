@@ -3,7 +3,6 @@
 
   roles:
     - role: wsgi-app
-      listen_port: 8080
 
     - role: nrpe-external-master
       check_name: check_http
