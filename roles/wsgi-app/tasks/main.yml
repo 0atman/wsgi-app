@@ -36,26 +36,6 @@
     group: "{{ wsgi_group }}"
     state: link
 
-- name: Set wsgi details if relation defined
-  tags:
-    - wsgi-file-relation-changed
-    - config-changed
-  command: >
-    relation-set -r {{ item.key }}
-    project_name={{ app_label }}
-    working_dir={{ code_dir }}/current
-    python_path={{ python_path }}
-    wsgi_user={{ wsgi_user }}
-    wsgi_group={{ wsgi_group }}
-    port={{ listen_port }}
-    wsgi_access_logfile={{ log_dir }}/{{ app_label }}-access.log
-    wsgi_wsgi_file={{ wsgi_application }}
-    wsgi_extra=--error-logfile={{ log_dir }}/{{ app_label }}-error.log
-    env_extra='{{ env_extra }}'
-    timestamp={{ ansible_date_time.iso8601_micro }}
-  when: relations['wsgi-file']
-  with_dict: relations['wsgi-file']
-
 - name: Set the website relation if defined.
   tags:
     - website-relation-changed
