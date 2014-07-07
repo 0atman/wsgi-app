@@ -16,7 +16,7 @@ from charmhelpers.core.hookenv import (
     relation_get, relation_set,
     open_port, close_port,
     config, local_unit,
-    relations, relation_ids
+    relation_ids
 )
 from charmhelpers.core.host import log
 
