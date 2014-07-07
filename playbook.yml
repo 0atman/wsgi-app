@@ -44,4 +44,7 @@
     # Run make target
     # ===
     - name: Run update make target
+      tags:
+        - install
+        - config-changed
       command: "make -C {{ current_code_dir }} {{ update_make_target }} || echo 'No make target defined: {{ update_make_target }}' "
