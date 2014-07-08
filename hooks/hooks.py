@@ -132,6 +132,9 @@ def wsgi_relation():
             **wsgi_relation_settings
         )
 
+        # Relation changed - re-run update target
+        update_target()
+
     open_port(config_data['listen_port'])
 
 
@@ -185,6 +188,9 @@ def pgsql_relation():
             update_property_in_json_file(
                 env_file_path, 'DATABASE_URL', database_url
             )
+
+            # Relation changed - re-run update target
+            update_target()
 
             # Reset wsgi relation settings
             wsgi_relation()
