@@ -18,7 +18,8 @@ from charmhelpers.core.hookenv import (
     relation_get, relation_set,
     open_port, close_port,
     relation_ids, relations,
-    config, local_unit
+    config, local_unit,
+    Hooks
 )
 from charmhelpers.core.host import log
 
@@ -42,13 +43,16 @@ def ansible_config():
 # required hooks based on the available tags in your playbook.
 # By default, running a hook (such as 'config-changed') will
 # result in running all tasks tagged with that hook name.
-hooks = charmhelpers.contrib.ansible.AnsibleHooks(
+ansible_hooks = charmhelpers.contrib.ansible.AnsibleHooks(
     playbook_path='playbook.yml'
 )
+hooks = Hooks()
 
 
 @hooks.hook('pgsql-relation-changed', 'config-changed')
 def pgsql_relation():
+    log('!!!!!!! pgsql relation')
+
     for relation_id in relation_ids('pgsql'):
         database_name = relation_get(
             "database",
@@ -99,6 +103,8 @@ def update_target():
     Run the "update-charm" make target within the project
     """
 
+    log('!!!!!!! update target')
+
     config_data = ansible_config()
 
     required_configs = [
@@ -129,6 +135,8 @@ def update_target():
 
 @hooks.hook('wsgi-file-relation-changed', 'config-changed')
 def wsgi_relation():
+    log('!!!!!!! wsgi relation')
+
     config_data = ansible_config()
 
     log_file_path = path.join(
@@ -191,6 +199,8 @@ def install():
     function finishes, any tasks in the playbook tagged with install are
     executed.
     """
+
+    log('!!!!!!! install')
 
     # Recreate cache directory
     if path.isdir(cache_dir):
