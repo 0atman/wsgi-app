@@ -47,27 +47,6 @@ hooks = charmhelpers.contrib.ansible.AnsibleHooks(
 )
 
 
-@hooks.hook('install', 'upgrade-charm')
-def install():
-    """
-    - Install ansible
-    - Create the cache directory
-
-    The hook() helper decorating this install function ensures that after this
-    function finishes, any tasks in the playbook tagged with install are
-    executed.
-    """
-
-    # Recreate cache directory
-    if path.isdir(cache_dir):
-        rmtree(cache_dir)
-
-    mkdir(cache_dir)
-
-    # Setup ansible
-    charmhelpers.contrib.ansible.install_ansible_support(from_ppa=True)
-
-
 @hooks.hook('pgsql-relation-changed', 'config-changed')
 def pgsql_relation():
     for relation_id in relation_ids('pgsql'):
@@ -200,6 +179,27 @@ def wsgi_relation_broken():
     config_data = ansible_config()
 
     close_port(config_data['listen_port'])
+
+
+@hooks.hook('install', 'upgrade-charm')
+def install():
+    """
+    - Install ansible
+    - Create the cache directory
+
+    The hook() helper decorating this install function ensures that after this
+    function finishes, any tasks in the playbook tagged with install are
+    executed.
+    """
+
+    # Recreate cache directory
+    if path.isdir(cache_dir):
+        rmtree(cache_dir)
+
+    mkdir(cache_dir)
+
+    # Setup ansible
+    charmhelpers.contrib.ansible.install_ansible_support(from_ppa=True)
 
 
 if __name__ == "__main__":
