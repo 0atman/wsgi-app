@@ -51,7 +51,7 @@ def update_target():
     required_configs = [
         'build_label',
         'archive_filename',
-        'code_dir',
+        'current_code_dir',
         'update_make_target'
     ]
 
@@ -60,19 +60,19 @@ def update_target():
         # Ensure make is installed
         apt_output = sh.apt_get.install('make')
         log('Installed make:')
-        log(apt_output)
+        log(str(apt_output))
 
         env_vars = parse_json_file(env_file_path)
 
         # Execute make target with all environment variables
         make_output = sh.make(
             config_data['update_make_target'],
-            directory=path.join(config_data.get('code_dir', ''), 'current'),
+            directory=path.join(config_data.get('current_code_dir')),
             _env=env_vars
         )
 
         log('Make output:')
-        log(make_output)
+        log(str(make_output))
 
 
 # Create the hooks helper which automatically registers the
@@ -237,15 +237,6 @@ def install():
 
     # Setup ansible
     charmhelpers.contrib.ansible.install_ansible_support(from_ppa=True)
-
-
-@hooks.hook('start')
-def start():
-    """
-    Run everything that should run on "start"
-    """
-
-    update_target()
 
 
 @hooks.hook('config-changed')
