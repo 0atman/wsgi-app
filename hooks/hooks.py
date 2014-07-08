@@ -151,7 +151,7 @@ def update_target():
     # Check all required configs are set
     if items_are_not_empty(config_data, required_configs):
         # Ensure make is installed
-        sh.apt_get(install='make')
+        sh.apt_get.install('make')
 
         env_vars = parse_json_file(env_file_path)
 
