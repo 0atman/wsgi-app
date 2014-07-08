@@ -68,33 +68,6 @@ def install():
     charmhelpers.contrib.ansible.install_ansible_support(from_ppa=True)
 
 
-@hooks.hook('config-changed')
-def update_target():
-    """
-    Run the "update-charm" make target within the project
-    """
-
-    config_data = ansible_config()
-
-    required_configs = [
-        'build_label',
-        'archive_filename',
-        'code_dir',
-        'update_make_target'
-    ]
-
-    # Check all required configs are set
-    if items_are_not_empty(config_data, required_configs):
-        env_vars = parse_json_file(env_file_path)
-
-        # Execute make target with all environment variables
-        sh.make(
-            config_data['update_make_target'],
-            directory=path.join(config_data.get('code_dir', ''), 'current'),
-            _env=env_vars
-        )
-
-
 @hooks.hook('pgsql-relation-changed', 'config-changed')
 def pgsql_relation():
     for relation_id in relation_ids('pgsql'):
@@ -139,6 +112,40 @@ def pgsql_relation_broken():
 
         # Reset wsgi relation settings
         wsgi_relation()
+
+
+@hooks.hook('config-changed')
+def update_target():
+    """
+    Run the "update-charm" make target within the project
+    """
+
+    config_data = ansible_config()
+
+    required_configs = [
+        'build_label',
+        'archive_filename',
+        'code_dir',
+        'update_make_target'
+    ]
+
+    log("CONFIG DATA!!!!!!!" + str(config_data))
+    log("REQUIREDCONFIGS!!!" + str(required_configs))
+    log(
+        "items not empty: "
+        + str(items_are_not_empty(config_data, required_configs))
+    )
+
+    # Check all required configs are set
+    if items_are_not_empty(config_data, required_configs):
+        env_vars = parse_json_file(env_file_path)
+
+        # Execute make target with all environment variables
+        sh.make(
+            config_data['update_make_target'],
+            directory=path.join(config_data.get('code_dir', ''), 'current'),
+            _env=env_vars
+        )
 
 
 @hooks.hook('wsgi-file-relation-changed', 'config-changed')
