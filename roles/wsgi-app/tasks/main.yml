@@ -5,6 +5,7 @@
 - name: Symlink latest tarball of application code
   tags:
     - config-changed
+    - start
   file:
     src: "{{ code_dir }}/{{ build_label }}"
     dest: "{{ code_dir }}/latest"
@@ -22,7 +23,7 @@
   tags:
     - wsgi-file-relation-changed
     - config-changed
-  fail: msg="The configured current_symlink does not exist, {{ code_dir }}/{{ current_symlink }}"
+  fail: 'msg="The configured current_symlink does not exist, {{ code_dir }}/{{ current_symlink }}"'
   when: stat_current_symlink.stat.exists == False
 
 - name: Update the current symlink.
