@@ -1,4 +1,7 @@
 ---
+- local_action: stat path={{ charm_dir }}/files/{{ build_label }}/{{ archive_filename }}
+  register: local_archive_file
+
 - name: Copy code archive from the charm if not using code_assets_uri
   tags:
     - config-changed
@@ -9,7 +12,7 @@
     owner: "{{ wsgi_user }}"
     group: "{{ wsgi_group }}"
     mode: 0644
-  when: code_assets_uri == "" and build_label > "" and archive_filename > ""
+  when: code_assets_uri <= "" and local_archive_file.stat.exists == False
 
 - name: Download code tarball archive from the code assets uri
   tags:
