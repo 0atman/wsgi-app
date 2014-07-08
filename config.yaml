@@ -65,7 +65,7 @@ options:
             with configuration information about the relation
             at: <settings_dir>/<relation_name>.py.
     update_make_target:
-        default: "update"
+        default: ""
         type: string
         description: >
             After the code is extracted, the charm will run:
