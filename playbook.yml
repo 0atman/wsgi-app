@@ -11,15 +11,6 @@
       when: nagios_index_content > ''
 
   tasks:
-    # Install charm dependencies
-    # ===
-    - name: Install charm dependencies
-      apt: "pkg={{ item }} state=latest update_cache=yes"
-      with_items:
-        - make
-      tags:
-        - install
-
     # Apt dependencies
     # ===
     - name: Install custom apt dependencies.
