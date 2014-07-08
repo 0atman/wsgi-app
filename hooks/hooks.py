@@ -18,8 +18,7 @@ from charmhelpers.core.hookenv import (
     relation_get, relation_set,
     open_port, close_port,
     relation_ids, relations,
-    config, local_unit,
-    Hooks
+    config, local_unit
 )
 from charmhelpers.core.host import log
 
@@ -43,10 +42,9 @@ def ansible_config():
 # required hooks based on the available tags in your playbook.
 # By default, running a hook (such as 'config-changed') will
 # result in running all tasks tagged with that hook name.
-ansible_hooks = charmhelpers.contrib.ansible.AnsibleHooks(
+hooks = charmhelpers.contrib.ansible.AnsibleHooks(
     playbook_path='playbook.yml'
 )
-hooks = Hooks()
 
 
 @hooks.hook('install', 'upgrade-charm')
@@ -152,6 +150,9 @@ def update_target():
 
     # Check all required configs are set
     if items_are_not_empty(config_data, required_configs):
+        # Ensure make is installed
+        sh.apt_get(install='make')
+
         env_vars = parse_json_file(env_file_path)
 
         # Execute make target with all environment variables
