@@ -38,39 +38,7 @@ def ansible_config():
     config_data['local_unit'] = local_unit()
     return add_ansible_config(charm_dir, config_data)
 
-# Create the hooks helper which automatically registers the
-# required hooks based on the available tags in your playbook.
-# By default, running a hook (such as 'config-changed') will
-# result in running all tasks tagged with that hook name.
-hooks = charmhelpers.contrib.ansible.AnsibleHooks(
-    playbook_path='playbook.yml'
-)
 
-
-@hooks.hook('install', 'upgrade-charm')
-def install():
-    """
-    - Install ansible
-    - Create the cache directory
-
-    The hook() helper decorating this install function ensures that after this
-    function finishes, any tasks in the playbook tagged with install are
-    executed.
-    """
-
-    log('Hook function: install')
-
-    # Recreate cache directory
-    if path.isdir(cache_dir):
-        rmtree(cache_dir)
-
-    mkdir(cache_dir)
-
-    # Setup ansible
-    charmhelpers.contrib.ansible.install_ansible_support(from_ppa=True)
-
-
-@hooks.hook('start', 'config-changed')
 def update_target():
     """
     Run the "update-charm" make target within the project
@@ -90,19 +58,33 @@ def update_target():
     # Check all required configs are set
     if items_are_not_empty(config_data, required_configs):
         # Ensure make is installed
-        sh.apt_get.install('make')
+        apt_output = sh.apt_get.install('make')
+        log('Installed make:')
+        log(apt_output)
 
         env_vars = parse_json_file(env_file_path)
 
         # Execute make target with all environment variables
-        sh.make(
+        make_output = sh.make(
             config_data['update_make_target'],
             directory=path.join(config_data.get('code_dir', ''), 'current'),
             _env=env_vars
         )
 
+        log('Make output:')
+        log(make_output)
 
-@hooks.hook('wsgi-file-relation-changed', 'config-changed')
+
+# Create the hooks helper which automatically registers the
+# required hooks based on the available tags in your playbook.
+# By default, running a hook (such as 'config-changed') will
+# result in running all tasks tagged with that hook name.
+hooks = charmhelpers.contrib.ansible.AnsibleHooks(
+    playbook_path='playbook.yml'
+)
+
+
+@hooks.hook('wsgi-file-relation-changed')
 def wsgi_relation():
     """
     Setup relation for serving the WSGI file (e.g. gunicorn)
@@ -150,8 +132,6 @@ def wsgi_relation():
             **wsgi_relation_settings
         )
 
-        update_target()
-
     open_port(config_data['listen_port'])
 
 
@@ -169,8 +149,7 @@ def wsgi_relation_broken():
     close_port(config_data['listen_port'])
 
 
-
-@hooks.hook('pgsql-relation-changed', 'config-changed')
+@hooks.hook('pgsql-relation-changed')
 def pgsql_relation():
     """
     Setup relation to a postgresql database
@@ -230,5 +209,49 @@ def pgsql_relation_broken():
         # Reset wsgi relation settings
         wsgi_relation()
 
+
+@hooks.hook('install', 'upgrade-charm')
+def install():
+    """
+    - Install ansible
+    - Create the cache directory
+
+    The hook() helper decorating this install function ensures that after this
+    function finishes, any tasks in the playbook tagged with install are
+    executed.
+    """
+
+    log('Hook function: install')
+
+    # Recreate cache directory
+    if path.isdir(cache_dir):
+        rmtree(cache_dir)
+
+    mkdir(cache_dir)
+
+    # Setup ansible
+    charmhelpers.contrib.ansible.install_ansible_support(from_ppa=True)
+
+
+@hooks.hook('start')
+def start():
+    """
+    Run everything that should run on "start"
+    """
+
+    update_target()
+
+
+@hooks.hook('config-changed')
+def config_changed():
+    """
+    Run everything which should be updated when config changes
+    """
+
+    pgsql_relation()
+    wsgi_relation()
+    update_target()
+
+
 if __name__ == "__main__":
-        hooks.execute(sys.argv)
+    hooks.execute(sys.argv)
