@@ -97,7 +97,7 @@ def pgsql_relation_broken():
         wsgi_relation()
 
 
-@hooks.hook('config-changed')
+@hooks.hook('start', 'config-changed')
 def update_target():
     """
     Run the "update-charm" make target within the project
