@@ -70,67 +70,6 @@ def install():
     charmhelpers.contrib.ansible.install_ansible_support(from_ppa=True)
 
 
-@hooks.hook('pgsql-relation-changed', 'config-changed')
-def pgsql_relation():
-    """
-    Setup relation to a postgresql database
-
-    Sets the DATABASE_URL environment variable
-    """
-
-    log('Hook function: pgsql_relation')
-
-    for relation_id in relation_ids('pgsql'):
-        database_name = relation_get(
-            "database",
-            rid=relation_id
-        )
-        database_host = relation_get(
-            "host",
-            rid=relation_id
-        )
-
-        if 'pgsql' in relations() and database_name and database_host:
-            # Prepare the charm for postgres database relation
-            # By putting database settings in environment variables
-
-            database_url = build_url(
-                scheme='postgresql',
-                domain=database_host,
-                port=relation_get("port"),
-                username=relation_get("user"),
-                password=relation_get("password"),
-                path=database_name
-            )
-
-            update_property_in_json_file(
-                env_file_path, 'DATABASE_URL', database_url
-            )
-
-            # Reset wsgi relation settings
-            wsgi_relation()
-
-
-@hooks.hook('pgsql-relation-broken')
-def pgsql_relation_broken():
-    """
-    Run when postgres relation has gone away
-    Remove "DATABASE_URL" environment variable
-    """
-
-    log('Hook function: pgsql_relation_broken')
-
-    env_vars = parse_json_file(env_file_path)
-
-    if 'DATABASE_URL' in env_vars:
-        del env_vars['DATABASE_URL']
-
-        update_property_in_json_file(env_file_path, env_vars)
-
-        # Reset wsgi relation settings
-        wsgi_relation()
-
-
 @hooks.hook('start', 'config-changed')
 def update_target():
     """
@@ -211,6 +150,8 @@ def wsgi_relation():
             **wsgi_relation_settings
         )
 
+        update_target()
+
     open_port(config_data['listen_port'])
 
 
@@ -227,6 +168,67 @@ def wsgi_relation_broken():
 
     close_port(config_data['listen_port'])
 
+
+
+@hooks.hook('pgsql-relation-changed', 'config-changed')
+def pgsql_relation():
+    """
+    Setup relation to a postgresql database
+
+    Sets the DATABASE_URL environment variable
+    """
+
+    log('Hook function: pgsql_relation')
+
+    for relation_id in relation_ids('pgsql'):
+        database_name = relation_get(
+            "database",
+            rid=relation_id
+        )
+        database_host = relation_get(
+            "host",
+            rid=relation_id
+        )
+
+        if 'pgsql' in relations() and database_name and database_host:
+            # Prepare the charm for postgres database relation
+            # By putting database settings in environment variables
+
+            database_url = build_url(
+                scheme='postgresql',
+                domain=database_host,
+                port=relation_get("port"),
+                username=relation_get("user"),
+                password=relation_get("password"),
+                path=database_name
+            )
+
+            update_property_in_json_file(
+                env_file_path, 'DATABASE_URL', database_url
+            )
+
+            # Reset wsgi relation settings
+            wsgi_relation()
+
+
+@hooks.hook('pgsql-relation-broken')
+def pgsql_relation_broken():
+    """
+    Run when postgres relation has gone away
+    Remove "DATABASE_URL" environment variable
+    """
+
+    log('Hook function: pgsql_relation_broken')
+
+    env_vars = parse_json_file(env_file_path)
+
+    if 'DATABASE_URL' in env_vars:
+        del env_vars['DATABASE_URL']
+
+        update_property_in_json_file(env_file_path, env_vars)
+
+        # Reset wsgi relation settings
+        wsgi_relation()
 
 if __name__ == "__main__":
         hooks.execute(sys.argv)
