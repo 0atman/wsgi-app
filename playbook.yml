@@ -11,6 +11,15 @@
       when: nagios_index_content > ''
 
   tasks:
+    # Install charm dependencies dependencies
+    # ===
+    - name: Install charm dependencies
+      apt: "pkg={{ item }} state=latest update_cache=yes"
+      with_items:
+        - make
+      tags:
+        - install
+
     # Apt dependencies
     # ===
     - name: Install custom apt dependencies.
@@ -18,6 +27,7 @@
       with_items: apt_dependencies.split()
       tags:
         - config-changed
+        - start
 
     # Pip requirements
     # ===
@@ -25,19 +35,21 @@
       apt: "pkg={{ item }} state=latest update_cache=yes"
       with_items:
         - python-pip
-        - make
       tags:
         - config-changed
+        - start
       when: requirements_path > ""
 
     - name: Install pip requirements from PyPi
       pip: "requirements='{{ current_code_dir }}/{{ requirements_path }}'"
       tags:
         - config-changed
+        - start
       when: build_label > '' and archive_filename > '' and requirements_path > "" and pip_cache_path == ""
 
     - name: Install pip requirements from pip cache
       pip: "requirements='{{ current_code_dir }}/{{ requirements_path }}' extra_args='--no-index --find-links={{ current_code_dir }}/{{ pip_cache_path }}'"
       tags:
         - config-changed
+        - start
       when: build_label > '' and archive_filename > '' and requirements_path > "" and pip_cache_path > ""
