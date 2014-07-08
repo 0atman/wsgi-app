@@ -49,9 +49,38 @@ ansible_hooks = charmhelpers.contrib.ansible.AnsibleHooks(
 hooks = Hooks()
 
 
+@hooks.hook('install', 'upgrade-charm')
+def install():
+    """
+    - Install ansible
+    - Create the cache directory
+
+    The hook() helper decorating this install function ensures that after this
+    function finishes, any tasks in the playbook tagged with install are
+    executed.
+    """
+
+    log('Hook function: install')
+
+    # Recreate cache directory
+    if path.isdir(cache_dir):
+        rmtree(cache_dir)
+
+    mkdir(cache_dir)
+
+    # Setup ansible
+    charmhelpers.contrib.ansible.install_ansible_support(from_ppa=True)
+
+
 @hooks.hook('pgsql-relation-changed', 'config-changed')
 def pgsql_relation():
-    log('!!!!!!! pgsql relation')
+    """
+    Setup relation to a postgresql database
+
+    Sets the DATABASE_URL environment variable
+    """
+
+    log('Hook function: pgsql_relation')
 
     for relation_id in relation_ids('pgsql'):
         database_name = relation_get(
@@ -86,6 +115,13 @@ def pgsql_relation():
 
 @hooks.hook('pgsql-relation-broken')
 def pgsql_relation_broken():
+    """
+    Run when postgres relation has gone away
+    Remove "DATABASE_URL" environment variable
+    """
+
+    log('Hook function: pgsql_relation_broken')
+
     env_vars = parse_json_file(env_file_path)
 
     if 'DATABASE_URL' in env_vars:
@@ -103,7 +139,7 @@ def update_target():
     Run the "update-charm" make target within the project
     """
 
-    log('!!!!!!! update target')
+    log('Hook function: update_target')
 
     config_data = ansible_config()
 
@@ -113,13 +149,6 @@ def update_target():
         'code_dir',
         'update_make_target'
     ]
-
-    log("CONFIG DATA!!!!!!!" + str(config_data))
-    log("REQUIREDCONFIGS!!!" + str(required_configs))
-    log(
-        "items not empty: "
-        + str(items_are_not_empty(config_data, required_configs))
-    )
 
     # Check all required configs are set
     if items_are_not_empty(config_data, required_configs):
@@ -135,7 +164,14 @@ def update_target():
 
 @hooks.hook('wsgi-file-relation-changed', 'config-changed')
 def wsgi_relation():
-    log('!!!!!!! wsgi relation')
+    """
+    Setup relation for serving the WSGI file (e.g. gunicorn)
+
+    Sets a whole bunch of relation settings
+    including log file locations and environent variables
+    """
+
+    log('Hook function: wsgi_relation')
 
     config_data = ansible_config()
 
@@ -184,32 +220,11 @@ def wsgi_relation_broken():
 
     """
 
+    log('Hook function: wsgi_relation_broken')
+
     config_data = ansible_config()
 
     close_port(config_data['listen_port'])
-
-
-@hooks.hook('install', 'upgrade-charm')
-def install():
-    """
-    - Install ansible
-    - Create the cache directory
-
-    The hook() helper decorating this install function ensures that after this
-    function finishes, any tasks in the playbook tagged with install are
-    executed.
-    """
-
-    log('!!!!!!! install')
-
-    # Recreate cache directory
-    if path.isdir(cache_dir):
-        rmtree(cache_dir)
-
-    mkdir(cache_dir)
-
-    # Setup ansible
-    charmhelpers.contrib.ansible.install_ansible_support(from_ppa=True)
 
 
 if __name__ == "__main__":
