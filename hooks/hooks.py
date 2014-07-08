@@ -56,7 +56,10 @@ def update_target():
     ]
 
     # Check all required configs are set
-    if items_are_not_empty(config_data, required_configs):
+    if (
+        items_are_not_empty(config_data, required_configs)
+        and path.isdir(config_data['current_code_dir'])
+    ):
         # Ensure make is installed
         apt_output = sh.apt_get.install('make')
         log('Installed make:')
@@ -67,7 +70,7 @@ def update_target():
         # Execute make target with all environment variables
         make_output = sh.make(
             config_data['update_make_target'],
-            directory=path.join(config_data.get('current_code_dir')),
+            directory=path.join(config_data['current_code_dir']),
             _env=env_vars
         )
 
@@ -142,7 +145,6 @@ def wsgi_relation():
 def wsgi_relation_broken():
     """
     When WSGI relation (e.g.: gunicorn) goes away
-
     """
 
     log('Hook function: wsgi_relation_broken')
@@ -237,6 +239,15 @@ def install():
 
     # Setup ansible
     charmhelpers.contrib.ansible.install_ansible_support(from_ppa=True)
+
+
+@hooks.hook('start')
+def start():
+    """
+    Run everything that should run on "start"
+    """
+
+    update_target()
 
 
 @hooks.hook('config-changed')
