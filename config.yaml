@@ -55,15 +55,6 @@ options:
     nagios_index_content:
         default: ""
         type: string
-    relation_config_dir:
-        default: "conf"
-        type: string
-        description: >
-            The location of the directory within the project directory
-            for relation settings files to be placed.
-            When the charm creates relations, it will store settings files
-            with configuration information about the relation
-            at: <settings_dir>/<relation_name>.py.
     update_make_target:
         default: ""
         type: string
