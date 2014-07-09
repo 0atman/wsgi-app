@@ -22,7 +22,6 @@
 - name: Setup directories.
   tags:
     - config-changed
-    - start
   file: path={{ item }} state=directory owner={{ wsgi_user }} group={{ wsgi_group }} recurse=yes
   with_items:
     - "{{ application_dir }}"

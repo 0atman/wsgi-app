@@ -235,15 +235,6 @@ def install():
     charmhelpers.contrib.ansible.install_ansible_support(from_ppa=True)
 
 
-@hooks.hook('start')
-def start():
-    """
-    Run everything that should run on "start"
-    """
-
-    update_target()
-
-
 @hooks.hook('config-changed')
 def config_changed():
     """

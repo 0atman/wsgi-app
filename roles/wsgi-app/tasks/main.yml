@@ -5,7 +5,6 @@
 - name: Symlink latest tarball of application code
   tags:
     - config-changed
-    - start
   file:
     src: "{{ code_dir }}/{{ build_label }}"
     dest: "{{ code_dir }}/latest"

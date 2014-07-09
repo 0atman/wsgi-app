@@ -2,14 +2,12 @@
 - name: Check if local archive exists
   tags:
     - config-changed
-    - start
   stat: 'path={{ charm_dir }}/files/{{ build_label }}/{{ archive_filename }}'
   register: local_archive_file
 
 - name: Copy code archive from the charm if not using code_assets_uri
   tags:
     - config-changed
-    - start
   copy:
     src: "{{ charm_dir }}/files/{{ build_label }}/{{ archive_filename }}"
     dest: "{{ archives_dir }}/{{ build_label }}/{{ archive_filename }}"
@@ -22,7 +20,6 @@
 - name: Download code tarball archive from the code assets uri
   tags:
     - config-changed
-    - start
   get_url:
     url: "{{ code_assets_uri }}/{{ build_label }}/{{ archive_filename }}"
     dest: "{{ archives_dir }}/{{ build_label }}/{{ archive_filename }}"
@@ -35,14 +32,12 @@
 - name: Check if archive is already extracted
   tags:
     - config-changed
-    - start
   stat: path={{ current_code_dir }}/EXTRACTED
   register: already_extracted
 
 - name: Extract built app sourcecode.
   tags:
     - config-changed
-    - start
   unarchive:
     src: "{{ archives_dir }}/{{ build_label }}/{{ archive_filename }}"
     dest: "{{ current_code_dir }}"
@@ -55,7 +50,6 @@
 - name: Set user/group for application directory.
   tags:
     - config-changed
-    - start
   file: path={{ code_dir }} state=directory owner={{ wsgi_user }} group={{ wsgi_group }} recurse=yes
   when: already_extracted.stat.exists == False
 
@@ -63,5 +57,4 @@
   command: /usr/bin/touch {{ current_code_dir }}/EXTRACTED
   tags:
     - config-changed
-    - start
   when: already_extracted.stat.exists == False
