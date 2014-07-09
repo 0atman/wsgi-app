@@ -167,11 +167,13 @@ def pgsql_relation():
     for relation_id in relation_ids('pgsql'):
         database_name = relation_get(
             "database",
-            rid=relation_id
+            rid=relation_id,
+            unit=local_unit()
         )
         database_host = relation_get(
             "host",
-            rid=relation_id
+            rid=relation_id,
+            unit=local_unit()
         )
 
         if 'pgsql' in relations() and database_name and database_host:
@@ -181,9 +183,21 @@ def pgsql_relation():
             database_url = build_url(
                 scheme='postgresql',
                 domain=database_host,
-                port=relation_get("port"),
-                username=relation_get("user"),
-                password=relation_get("password"),
+                port=relation_get(
+                    "port",
+                    rid=relation_id,
+                    unit=local_unit()
+                ),
+                username=relation_get(
+                    "user",
+                    rid=relation_id,
+                    unit=local_unit()
+                ),
+                password=relation_get(
+                    "password",
+                    rid=relation_id,
+                    unit=local_unit()
+                ),
                 path=database_name
             )
 
