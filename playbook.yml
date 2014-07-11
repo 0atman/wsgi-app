@@ -6,7 +6,7 @@
 
     - role: nrpe-external-master
       check_name: check_http
-      check_params: "-I 127.0.0.1 -p 8080 -e ' 200 OK' -s '{{ nagios_index_content }}' -u '/'"
+      check_params: "-I 127.0.0.1 -p 8080 -e ' 200 OK' -s '{{ nagios_index_content }}' -u '{{ nagios_index_path }}'"
       service_description: "Verify wsgi-app is responding."
 
   tasks:

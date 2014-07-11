@@ -52,9 +52,14 @@ options:
         default: ''
         type: string
         description: A space-separated list of apt dependencies to install
+    nagios_index_path:
+        default: "/"
+        type: string
+        description: The path within the URI to the index page of the website - for nagios to test
     nagios_index_content:
         default: ""
         type: string
+        description: A string to check for inside the index page response - for nagios to test
     update_make_target:
         default: ""
         type: string
