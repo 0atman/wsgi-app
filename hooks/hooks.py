@@ -250,6 +250,50 @@ def unlink_database():
         wsgi_relation()
 
 
+@hooks.hook('webservice-relation-changed')
+def webservice_relation():
+    """
+    Create "WEBSERVICE_URL" environment variable from relation
+    """
+
+    log('Function: webservice_relation')
+
+    webservice_url = build_url(
+        scheme='http',
+        domain=relation_get('hostname'),
+        port=relation_get("port")
+    )
+
+    update_property_in_json_file(
+        env_file_path, 'WEBSERVICE_URL', webservice_url
+    )
+
+    # Relation changed - re-run update target
+    update_target()
+
+    # Reset wsgi relation settings
+    wsgi_relation()
+
+
+@hooks.hook('webservice-relation-broken')
+def unlink_webservice():
+    """
+    Remove "WEBSERVICE_URL" environment variable
+    """
+
+    log('Function: unlink_database')
+
+    env_vars = parse_json_file(env_file_path)
+
+    if 'WEBSERVICE_URL' in env_vars:
+        del env_vars['WEBSERVICE_URL']
+
+        update_property_in_json_file(env_file_path, env_vars)
+
+        # Reset wsgi relation settings
+        wsgi_relation()
+
+
 @hooks.hook('install', 'upgrade-charm')
 def install():
     """

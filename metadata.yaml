@@ -22,4 +22,6 @@ requires:
     mongodb:
       interface: mongodb
       optional: true
-
+    webservice:
+      interface: mongodb
+      optional: true
