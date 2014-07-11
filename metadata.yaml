@@ -19,3 +19,7 @@ requires:
     pgsql:
       interface: pgsql
       optional: true
+    mongodb:
+      interface: mongodb
+      optional: true
+

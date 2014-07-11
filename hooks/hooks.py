@@ -78,6 +78,39 @@ def update_target():
         log(str(make_output))
 
 
+def link_database(
+    scheme,
+    database_host,
+    port='',
+    username='',
+    password='',
+    database_name=''
+):
+    """
+    Create a link with a database
+    by setting the DATABASE_URL environment variable
+    """
+
+    database_url = build_url(
+        scheme='postgresql',
+        domain=database_host,
+        port=relation_get("port"),
+        username=,
+        password=relation_get("password"),
+        path=database_name
+    )
+
+    update_property_in_json_file(
+        env_file_path, 'DATABASE_URL', database_url
+    )
+
+    # Relation changed - re-run update target
+    update_target()
+
+    # Reset wsgi relation settings
+    wsgi_relation()
+
+
 # Create the hooks helper which automatically registers the
 # required hooks based on the available tags in your playbook.
 # By default, running a hook (such as 'config-changed') will
@@ -158,48 +191,53 @@ def wsgi_relation_broken():
 def pgsql_relation():
     """
     Setup relation to a postgresql database
-
-    Sets the DATABASE_URL environment variable
+    (will replace any other database relations)
     """
 
     log('Hook function: pgsql_relation')
 
-    for relation_id in relation_ids('pgsql'):
-        database_name = relation_get("database")
-        database_host = relation_get("host")
+    host = relation_get("host")
 
-        if 'pgsql' in relations() and database_name and database_host:
-            # Prepare the charm for postgres database relation
-            # By putting database settings in environment variables
-
-            database_url = build_url(
-                scheme='postgresql',
-                domain=database_host,
-                port=relation_get("port"),
-                username=relation_get("user"),
-                password=relation_get("password"),
-                path=database_name
-            )
-
-            update_property_in_json_file(
-                env_file_path, 'DATABASE_URL', database_url
-            )
-
-            # Relation changed - re-run update target
-            update_target()
-
-            # Reset wsgi relation settings
-            wsgi_relation()
+    if 'pgsql' in relations() and host:
+        link_database(
+            scheme='postgresql',
+            database_host=host,
+            port=relation_get("port"),
+            username=relation_get("user"),
+            password=relation_get("password"),
+            database_name=relation_get("database")
+        )
 
 
-@hooks.hook('pgsql-relation-broken')
-def pgsql_relation_broken():
+@hooks.hook('mongodb-relation-changed')
+def mongodb_relation():
     """
-    Run when postgres relation has gone away
+    Setup relation to a mongodb database
+    (will replace any other database relations)
+    """
+
+    log('Hook function: mongodb_relation')
+
+    host = relation_get("hostname")
+
+    if 'mongodb' in relations() and host:
+        link_database(
+            scheme='mongodb',
+            database_host=host,
+            port=relation_get("port"),
+            username=relation_get("user"),
+            password=relation_get("password"),
+            database_name=relation_get("database")
+        )
+
+
+@hooks.hook('pgsql-relation-broken', 'mongodb-relation-broken')
+def unlink_database():
+    """
     Remove "DATABASE_URL" environment variable
     """
 
-    log('Hook function: pgsql_relation_broken')
+    log('Function: unlink_database')
 
     env_vars = parse_json_file(env_file_path)
 
@@ -242,6 +280,7 @@ def config_changed():
     """
 
     pgsql_relation()
+    mongodb_relation()
     wsgi_relation()
     update_target()
 
