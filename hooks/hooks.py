@@ -311,16 +311,17 @@ def install():
     mkdir(cache_dir)
 
     # Save any environment variables as JSON
-    env_var_strings = config('environment_variables').split(' ')
-    env_vars = {}
+    env_vars_string = config('environment_variables')
 
-    if env_var_strings > '':
-        for env_var_string in env_var_strings:
+    if env_vars_string:
+        env_vars = {}
+
+        for env_var_string in env_vars_string.split(' '):
             key, value = env_var_string.split('=')
             value = dequote(value)
             env_vars[key] = value
 
-    save_to_json_file(env_file_path, env_vars)
+        save_to_json_file(env_file_path, env_vars)
 
     # Setup ansible
     charmhelpers.contrib.ansible.install_ansible_support(from_ppa=True)
