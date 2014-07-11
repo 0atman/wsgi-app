@@ -92,7 +92,7 @@ def link_database(
     """
 
     database_url = build_url(
-        scheme='postgresql',
+        scheme=scheme,
         domain=database_host,
         port=port,
         username=username,
