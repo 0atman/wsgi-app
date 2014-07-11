@@ -10,7 +10,7 @@ from datetime import datetime
 import sh
 from helpers import (
     build_url, parent_dir, add_ansible_config,
-    update_property_in_json_file, parse_json_file,
+    update_property_in_json_file, save_to_json_file, parse_json_file,
     items_are_not_empty
 )
 import charmhelpers.contrib.ansible
@@ -241,7 +241,7 @@ def unlink_database():
     if 'DATABASE_URL' in env_vars:
         del env_vars['DATABASE_URL']
 
-        update_property_in_json_file(env_file_path, env_vars)
+        save_to_json_file(env_file_path, env_vars)
 
         # Reset wsgi relation settings
         wsgi_relation()
@@ -285,7 +285,7 @@ def unlink_webservice():
     if 'WEBSERVICE_URL' in env_vars:
         del env_vars['WEBSERVICE_URL']
 
-        update_property_in_json_file(env_file_path, env_vars)
+        save_to_json_file(env_file_path, env_vars)
 
         # Reset wsgi relation settings
         wsgi_relation()
