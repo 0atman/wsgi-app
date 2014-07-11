@@ -68,3 +68,7 @@ options:
             $ make <update_make_target>
             in the project directory. You can define this make target
             in your project to run any commands necessary to update your app
+    environment_variables:
+        default: ""
+        type: string
+        description: A space separated list of environment variables for the app - in Bash variable syntax

@@ -11,7 +11,7 @@ import sh
 from helpers import (
     build_url, parent_dir, add_ansible_config,
     update_property_in_json_file, save_to_json_file, parse_json_file,
-    items_are_not_empty
+    items_are_not_empty, dequote
 )
 import charmhelpers.contrib.ansible
 from charmhelpers.core.hookenv import (
@@ -309,6 +309,18 @@ def install():
         rmtree(cache_dir)
 
     mkdir(cache_dir)
+
+    # Save any environment variables as JSON
+    env_var_strings = config('environment_variables').split(' ')
+    env_vars = {}
+
+    if env_var_strings:
+        for env_var_string in env_var_strings:
+            key, value = env_var_string.split('=')
+            value = dequote(value)
+            env_vars[key] = value
+
+    save_to_json_file(env_file_path, env_vars)
 
     # Setup ansible
     charmhelpers.contrib.ansible.install_ansible_support(from_ppa=True)

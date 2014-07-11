@@ -216,3 +216,17 @@ def items_are_not_empty(test_dictionary, items_to_test):
 
     # Return True only if all items are present and True
     return reduce(lambda x, y: x and y, item_booleans)
+
+
+def dequote(s):
+    """
+    If a string has single or double quotes around it, remove them.
+    If a matching pair of quotes is not found, return the string unchanged.
+    """
+
+    if (
+        s.startswith(("'", '"')) and s.endswith(("'", '"'))
+        and (s[0] == s[-1])  # make sure the pair of quotes match
+    ):
+        s = s[1:-1]
+    return s
