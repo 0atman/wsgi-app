@@ -314,7 +314,7 @@ def install():
     env_var_strings = config('environment_variables').split(' ')
     env_vars = {}
 
-    if env_var_strings:
+    if env_var_strings > '':
         for env_var_string in env_var_strings:
             key, value = env_var_string.split('=')
             value = dequote(value)
