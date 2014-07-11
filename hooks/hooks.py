@@ -94,9 +94,9 @@ def link_database(
     database_url = build_url(
         scheme='postgresql',
         domain=database_host,
-        port=relation_get("port"),
-        username=,
-        password=relation_get("password"),
+        port=port,
+        username=username,
+        password=password,
         path=database_name
     )
 
@@ -224,10 +224,7 @@ def mongodb_relation():
         link_database(
             scheme='mongodb',
             database_host=host,
-            port=relation_get("port"),
-            username=relation_get("user"),
-            password=relation_get("password"),
-            database_name=relation_get("database")
+            port=relation_get("port")
         )
 
 
