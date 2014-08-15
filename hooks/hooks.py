@@ -2,6 +2,7 @@
 
 # System
 import sys
+import re
 from shutil import rmtree
 from os import path, mkdir
 from datetime import datetime
@@ -255,9 +256,32 @@ def webservice_relation():
 
     log('Function: webservice_relation')
 
+    hostname = relation_get('hostname')
+    address = relation_get('private-address')
+
+    # If hostname is IP address or FQDN, use it
+    # otherwise use private_address
+    ip_regex = re.compile(
+        (
+            r"^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.)"
+            r"{3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])$"
+        )
+    )
+    hostname_regex = re.compile(
+        (
+            r"^(([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\-]*[a-zA-Z0-9])\.)+"
+            r"([A-Za-z0-9]|[A-Za-z0-9][A-Za-z0-9\-]*[A-Za-z0-9])$"
+        )
+    )
+
+    if hostname_regex.match(hostname) or ip_regex.match(hostname):
+        domain = hostname
+    else:
+        domain = address
+
     webservice_url = build_url(
         scheme='http',
-        domain=relation_get('hostname'),
+        domain=domain,
         port=relation_get("port")
     )
 
