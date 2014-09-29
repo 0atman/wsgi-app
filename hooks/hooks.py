@@ -85,11 +85,12 @@ def link_database(
     port='',
     username='',
     password='',
-    database_name=''
+    database_name='',
+    variable_name='DATABASE_URL'
 ):
     """
-    Create a link with a database
-    by setting the DATABASE_URL environment variable
+    Create a link with a database by setting an environment variable
+    The variable will be "DATABASE_URL" by default
     """
 
     database_url = build_url(
@@ -102,7 +103,7 @@ def link_database(
     )
 
     update_property_in_json_file(
-        env_file_path, 'DATABASE_URL', database_url
+        env_file_path, variable_name, database_url
     )
 
     # Relation changed - re-run update target
@@ -225,12 +226,22 @@ def mongodb_relation():
         link_database(
             scheme='mongodb',
             database_host=host,
-            port=relation_get("port")
+            port=relation_get("port"),
+            variable_name='MONGO_URL'
         )
 
 
-@hooks.hook('pgsql-relation-broken', 'mongodb-relation-broken')
-def unlink_database():
+@hooks.hook('pgsql-relation-broken')
+def unlink_pgsql():
+    unlink_database('DATABASE_URL')
+
+
+@hooks.hook('mongodb-relation-broken')
+def unlink_mongo():
+    unlink_database('MONGO_URL')
+
+
+def unlink_database(variable_name):
     """
     Remove "DATABASE_URL" environment variable
     """
