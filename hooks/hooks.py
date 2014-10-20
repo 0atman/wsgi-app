@@ -368,10 +368,10 @@ def config_changed():
     Run everything which should be updated when config changes
     """
 
-    pgsql_relation()
-    mongodb_relation()
     wsgi_relation()
     update_target()
+    pgsql_relation()
+    mongodb_relation()
 
 
 if __name__ == "__main__":
