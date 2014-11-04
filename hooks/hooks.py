@@ -326,6 +326,22 @@ def unlink_webservice():
         wsgi_relation()
 
 
+def update_env():
+    'Save any environment variables as JSON'
+
+    env_vars_string = config('environment_variables')
+
+    if env_vars_string:
+        env_vars = {}
+
+        for env_var_string in env_vars_string.split(' '):
+            key, value = env_var_string.split('=')
+            value = dequote(value)
+            env_vars[key] = value
+
+        save_to_json_file(env_file_path, env_vars)
+
+
 @hooks.hook('install', 'upgrade-charm')
 def install():
     """
@@ -345,19 +361,6 @@ def install():
 
     mkdir(cache_dir)
 
-    # Save any environment variables as JSON
-    env_vars_string = config('environment_variables')
-
-    if env_vars_string:
-        env_vars = {}
-
-        for env_var_string in env_vars_string.split(' '):
-            key, value = env_var_string.split('=')
-            value = dequote(value)
-            env_vars[key] = value
-
-        save_to_json_file(env_file_path, env_vars)
-
     # Setup ansible
     charmhelpers.contrib.ansible.install_ansible_support(from_ppa=True)
 
@@ -367,7 +370,7 @@ def config_changed():
     """
     Run everything which should be updated when config changes
     """
-
+    update_env()
     wsgi_relation()
     update_target()
     pgsql_relation()
