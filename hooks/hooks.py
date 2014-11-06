@@ -359,6 +359,7 @@ def install():
     if path.isdir(cache_dir):
         rmtree(cache_dir)
 
+    update_env()
     mkdir(cache_dir)
 
     # Setup ansible
