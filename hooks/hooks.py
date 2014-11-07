@@ -359,9 +359,10 @@ def install():
     if path.isdir(cache_dir):
         rmtree(cache_dir)
 
-    update_env()
     mkdir(cache_dir)
 
+    update_env()
+    
     # Setup ansible
     charmhelpers.contrib.ansible.install_ansible_support(from_ppa=True)
 
