@@ -332,7 +332,7 @@ def update_env():
     env_vars_string = config('environment_variables')
 
     if env_vars_string:
-        env_vars = {}
+        env_vars = parse_json_file(env_file_path)
 
         for env_var_string in env_vars_string.split(' '):
             key, value = env_var_string.split('=')
