@@ -44,7 +44,7 @@
     relation-set -r {{ item.key }}
     hostname={{ ansible_default_ipv4.address }}
     port={{ listen_port }}
-    protocol={{ http_protocol }}
+    http_protocol={{ http_protocol }}
   when: relations['website']
   with_dict: relations['website']
 
