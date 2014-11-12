@@ -267,8 +267,8 @@ def webservice_relation():
 
     log('Function: webservice_relation')
     http_protocol = relation_get('http_protocol') or 'http'
-    hostname = relation_get('hostname')
     address = relation_get('private-address')
+    hostname = relation_get('hostname') or address
 
     # If hostname is IP address or FQDN, use it
     # otherwise use private_address
