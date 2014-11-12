@@ -12,6 +12,11 @@ options:
         type: string
         description: >
             The filename for the archive - e.g. "code_archive.tgz"
+    http_protocol:
+        default: "http"
+        type: string
+        description: >
+            The protocol of the manager-service interface.
     code_assets_uri:
         default: ""
         type: string

@@ -266,7 +266,7 @@ def webservice_relation():
     """
 
     log('Function: webservice_relation')
-
+    http_protocol = relation_get('http_protocol') or 'http'
     hostname = relation_get('hostname')
     address = relation_get('private-address')
 
@@ -291,7 +291,7 @@ def webservice_relation():
         domain = address
 
     webservice_url = build_url(
-        scheme='http',
+        scheme=http_protocol,
         domain=domain,
         port=relation_get("port")
     )
