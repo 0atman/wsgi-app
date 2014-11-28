@@ -61,6 +61,10 @@ options:
         default: "/"
         type: string
         description: The path within the URI to the index page of the website - for nagios to test
+    nagios_http_status:
+        default: '200 OK'
+        type: int
+        description: The expected HTTP status of the nagios check
     nagios_index_content:
         default: ""
         type: string
