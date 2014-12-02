@@ -32,6 +32,7 @@ from charmhelpers.core.hookenv import (
     relations
 )
 from charmhelpers.core.host import log
+from charmhelpers.payload.execd import execd_preinstall
 
 # Globals (unfortunately)
 charm_dir = parent_dir(__file__)
@@ -368,9 +369,6 @@ def install():
 
     update_env()
 
-    # Setup ansible
-    charmhelpers.contrib.ansible.install_ansible_support(from_ppa=True)
-
 
 @hooks.hook('config-changed')
 def config_changed():
@@ -393,6 +391,17 @@ ansible_hooks = charmhelpers.contrib.ansible.AnsibleHooks(
 )
 
 if __name__ == "__main__":
+    # Before anything else
+    # - do preinstall hooks
+    # - setup ansible
+    if sys.argv[0] == 'hooks/install':
+        execd_preinstall()
+        charmhelpers.contrib.ansible.install_ansible_support(from_ppa=True)
+
+    # Run ansible hooks first
+    ansible_hooks.execute(sys.argv)
+    hooks.execute(sys.argv)
+
     # Run ansible hooks first
     ansible_hooks.execute(sys.argv)
     hooks.execute(sys.argv)
