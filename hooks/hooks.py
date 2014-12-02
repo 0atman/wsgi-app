@@ -10,16 +10,26 @@ from datetime import datetime
 # Local
 import sh
 from helpers import (
-    build_url, parent_dir, add_ansible_config,
-    update_property_in_json_file, save_to_json_file, parse_json_file,
-    items_are_not_empty, dequote
+    add_ansible_config,
+    build_url,
+    dequote,
+    items_are_not_empty,
+    parent_dir,
+    parse_json_file,
+    save_to_json_file,
+    update_property_in_json_file
 )
 import charmhelpers.contrib.ansible
 from charmhelpers.core.hookenv import (
-    relation_get, relation_set,
-    open_port, close_port,
-    relation_ids, relations,
-    config, local_unit
+    close_port,
+    config,
+    Hooks,
+    local_unit,
+    open_port,
+    relation_get,
+    relation_ids,
+    relation_set,
+    relations
 )
 from charmhelpers.core.host import log
 
@@ -112,14 +122,9 @@ def link_database(
     # Reset wsgi relation settings
     wsgi_relation()
 
-
-# Create the hooks helper which automatically registers the
-# required hooks based on the available tags in your playbook.
-# By default, running a hook (such as 'config-changed') will
-# result in running all tasks tagged with that hook name.
-hooks = charmhelpers.contrib.ansible.AnsibleHooks(
-    playbook_path='playbook.yml'
-)
+# Hooks helper for the direct python hooks
+# (ansible hooks are run by ansible_hooks)
+hooks = Hooks()
 
 
 @hooks.hook('wsgi-file-relation-changed')
@@ -362,7 +367,7 @@ def install():
     mkdir(cache_dir)
 
     update_env()
-    
+
     # Setup ansible
     charmhelpers.contrib.ansible.install_ansible_support(from_ppa=True)
 
@@ -379,5 +384,15 @@ def config_changed():
     mongodb_relation()
 
 
+# Create the hooks helper which automatically registers the
+# required hooks based on the available tags in your playbook.
+# By default, running a hook (such as 'config-changed') will
+# result in running all tasks tagged with that hook name.
+ansible_hooks = charmhelpers.contrib.ansible.AnsibleHooks(
+    playbook_path='playbook.yml'
+)
+
 if __name__ == "__main__":
+    # Run ansible hooks first
+    ansible_hooks.execute(sys.argv)
     hooks.execute(sys.argv)
