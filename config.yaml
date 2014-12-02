@@ -5,7 +5,7 @@ options:
         description: >
             The build label given to the code archive and corresponding to
             the path from which the archived code should be installed.
-            For example, a value of 'r2' tells the charm to use
+            For example, a value of r'2' tells the charm to use
             the archive at 'r2/code_archive.tgz'.
     archive_filename:
         default: ""
@@ -27,7 +27,7 @@ options:
             {{ code_assets_uri }}/{{ build_label }}/{{ archive_filename }}
             NB: The URI should *not* include a trailing slash
     wsgi_application:
-        default: ''
+        default: ""
         type: string
         description: >
             The WSGI application within the archive, in Python notation
@@ -35,40 +35,44 @@ options:
     current_symlink:
         default: "latest"
         type: string
-        description: |
+        description: >
             The symlink of the code to run. The default of 'latest' will use
             the most recently added build on the instance.  Specifying a
             differnt label (eg. "r235") will symlink to that directory assuming
             it has been previously added to the instance.
     requirements_path:
-        default: ''
+        default: ""
         type: string
         description: >
             The location of the requirements file within the archive.
             Requirements in this file will be installed with `pip install`
     pip_cache_path:
-        default: ''
+        default: ""
         type: string
         description: >
             The location of the pip-cache to install requirements from.
             If pip-cache is present, pip will not attempt to connect to PyPi,
             and instead look for requirements in the specified cache folder.
     apt_dependencies:
-        default: ''
+        default: ""
         type: string
-        description: A space-separated list of apt dependencies to install
+        description: >
+            A space-separated list of apt dependencies to install
     nagios_index_path:
         default: "/"
         type: string
-        description: The path within the URI to the index page of the website - for nagios to test
+        description: >
+            The path within the URI to the index page of the website - for nagios to test
     nagios_http_status:
         default: 200
         type: int
-        description: The expected HTTP status of the nagios check
+        description: >
+            The expected HTTP status of the nagios check
     nagios_index_content:
         default: ""
         type: string
-        description: A string to check for inside the index page response - for nagios to test
+        description: >
+            A string to check for inside the index page response - for nagios to test
     update_make_target:
         default: ""
         type: string
@@ -80,4 +84,5 @@ options:
     environment_variables:
         default: ""
         type: string
-        description: A space separated list of environment variables for the app - in Bash variable syntax
+        description: >
+            A space separated list of environment variables for the app - in Bash variable syntax
