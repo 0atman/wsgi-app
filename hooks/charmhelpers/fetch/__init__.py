@@ -1,20 +1,22 @@
 import importlib
+from tempfile import NamedTemporaryFile
 import time
 from yaml import safe_load
 from charmhelpers.core.host import (
     lsb_release
-)
-from urlparse import (
-    urlparse,
-    urlunparse,
 )
 import subprocess
 from charmhelpers.core.hookenv import (
     config,
     log,
 )
-import apt_pkg
 import os
+
+import six
+if six.PY3:
+    from urllib.parse import urlparse, urlunparse
+else:
+    from urlparse import urlparse, urlunparse
 
 
 CLOUD_ARCHIVE = """# Ubuntu Cloud Archive
@@ -72,6 +74,7 @@ CLOUD_ARCHIVE_POCKETS = {
 FETCH_HANDLERS = (
     'charmhelpers.fetch.archiveurl.ArchiveUrlFetchHandler',
     'charmhelpers.fetch.bzrurl.BzrUrlFetchHandler',
+    'charmhelpers.fetch.giturl.GitUrlFetchHandler',
 )
 
 APT_NO_LOCK = 100  # The return code for "couldn't acquire lock" in APT.
@@ -117,13 +120,7 @@ class BaseFetchHandler(object):
 
 def filter_installed_packages(packages):
     """Returns a list of packages that require installation"""
-    apt_pkg.init()
-
-    # Tell apt to build an in-memory cache to prevent race conditions (if
-    # another process is already building the cache).
-    apt_pkg.config.set("Dir::Cache::pkgcache", "")
-
-    cache = apt_pkg.Cache()
+    cache = apt_cache()
     _pkgs = []
     for package in packages:
         try:
@@ -136,6 +133,16 @@ def filter_installed_packages(packages):
     return _pkgs
 
 
+def apt_cache(in_memory=True):
+    """Build and return an apt cache"""
+    import apt_pkg
+    apt_pkg.init()
+    if in_memory:
+        apt_pkg.config.set("Dir::Cache::pkgcache", "")
+        apt_pkg.config.set("Dir::Cache::srcpkgcache", "")
+    return apt_pkg.Cache()
+
+
 def apt_install(packages, options=None, fatal=False):
     """Install one or more packages"""
     if options is None:
@@ -144,7 +151,7 @@ def apt_install(packages, options=None, fatal=False):
     cmd = ['apt-get', '--assume-yes']
     cmd.extend(options)
     cmd.append('install')
-    if isinstance(packages, basestring):
+    if isinstance(packages, six.string_types):
         cmd.append(packages)
     else:
         cmd.extend(packages)
@@ -177,7 +184,7 @@ def apt_update(fatal=False):
 def apt_purge(packages, fatal=False):
     """Purge one or more packages"""
     cmd = ['apt-get', '--assume-yes', 'purge']
-    if isinstance(packages, basestring):
+    if isinstance(packages, six.string_types):
         cmd.append(packages)
     else:
         cmd.extend(packages)
@@ -188,7 +195,7 @@ def apt_purge(packages, fatal=False):
 def apt_hold(packages, fatal=False):
     """Hold one or more packages"""
     cmd = ['apt-mark', 'hold']
-    if isinstance(packages, basestring):
+    if isinstance(packages, six.string_types):
         cmd.append(packages)
     else:
         cmd.extend(packages)
@@ -201,6 +208,29 @@ def apt_hold(packages, fatal=False):
 
 
 def add_source(source, key=None):
+    """Add a package source to this system.
+
+    @param source: a URL or sources.list entry, as supported by
+    add-apt-repository(1). Examples::
+
+        ppa:charmers/example
+        deb https://stub:key@private.example.com/ubuntu trusty main
+
+    In addition:
+        'proposed:' may be used to enable the standard 'proposed'
+        pocket for the release.
+        'cloud:' may be used to activate official cloud archive pockets,
+        such as 'cloud:icehouse'
+        'distro' may be used as a noop
+
+    @param key: A key to be added to the system's APT keyring and used
+    to verify the signatures on packages. Ideally, this should be an
+    ASCII format GPG public key including the block headers. A GPG key
+    id may also be used, but be aware that only insecure protocols are
+    available to retrieve the actual public key from a public keyserver
+    placing your Juju environment at risk. ppa and cloud archive keys
+    are securely added automtically, so sould not be provided.
+    """
     if source is None:
         log('Source is not present. Skipping')
         return
@@ -225,61 +255,98 @@ def add_source(source, key=None):
         release = lsb_release()['DISTRIB_CODENAME']
         with open('/etc/apt/sources.list.d/proposed.list', 'w') as apt:
             apt.write(PROPOSED_POCKET.format(release))
+    elif source == 'distro':
+        pass
+    else:
+        log("Unknown source: {!r}".format(source))
+
     if key:
-        subprocess.check_call(['apt-key', 'adv', '--keyserver',
-                               'hkp://keyserver.ubuntu.com:80', '--recv',
-                               key])
+        if '-----BEGIN PGP PUBLIC KEY BLOCK-----' in key:
+            with NamedTemporaryFile('w+') as key_file:
+                key_file.write(key)
+                key_file.flush()
+                key_file.seek(0)
+                subprocess.check_call(['apt-key', 'add', '-'], stdin=key_file)
+        else:
+            # Note that hkp: is in no way a secure protocol. Using a
+            # GPG key id is pointless from a security POV unless you
+            # absolutely trust your network and DNS.
+            subprocess.check_call(['apt-key', 'adv', '--keyserver',
+                                   'hkp://keyserver.ubuntu.com:80', '--recv',
+                                   key])
 
 
 def configure_sources(update=False,
                       sources_var='install_sources',
                       keys_var='install_keys'):
     """
-    Configure multiple sources from charm configuration
+    Configure multiple sources from charm configuration.
+
+    The lists are encoded as yaml fragments in the configuration.
+    The frament needs to be included as a string. Sources and their
+    corresponding keys are of the types supported by add_source().
 
     Example config:
-        install_sources:
+        install_sources: |
           - "ppa:foo"
           - "http://example.com/repo precise main"
-        install_keys:
+        install_keys: |
           - null
           - "a1b2c3d4"
 
     Note that 'null' (a.k.a. None) should not be quoted.
     """
-    sources = safe_load(config(sources_var))
-    keys = config(keys_var)
-    if keys is not None:
-        keys = safe_load(keys)
-    if isinstance(sources, basestring) and (
-            keys is None or isinstance(keys, basestring)):
-        add_source(sources, keys)
+    sources = safe_load((config(sources_var) or '').strip()) or []
+    keys = safe_load((config(keys_var) or '').strip()) or None
+
+    if isinstance(sources, six.string_types):
+        sources = [sources]
+
+    if keys is None:
+        for source in sources:
+            add_source(source, None)
     else:
-        if not len(sources) == len(keys):
-            msg = 'Install sources and keys lists are different lengths'
-            raise SourceConfigError(msg)
-        for src_num in range(len(sources)):
-            add_source(sources[src_num], keys[src_num])
+        if isinstance(keys, six.string_types):
+            keys = [keys]
+
+        if len(sources) != len(keys):
+            raise SourceConfigError(
+                'Install sources and keys lists are different lengths')
+        for source, key in zip(sources, keys):
+            add_source(source, key)
     if update:
         apt_update(fatal=True)
 
 
-def install_remote(source):
+def install_remote(source, *args, **kwargs):
     """
     Install a file tree from a remote source
 
     The specified source should be a url of the form:
         scheme://[host]/path[#[option=value][&...]]
 
-    Schemes supported are based on this modules submodules
-    Options supported are submodule-specific"""
+    Schemes supported are based on this modules submodules.
+    Options supported are submodule-specific.
+    Additional arguments are passed through to the submodule.
+
+    For example::
+
+        dest = install_remote('http://example.com/archive.tgz',
+                              checksum='deadbeef',
+                              hash_type='sha1')
+
+    This will download `archive.tgz`, validate it using SHA1 and, if
+    the file is ok, extract it and return the directory in which it
+    was extracted.  If the checksum fails, it will raise
+    :class:`charmhelpers.core.host.ChecksumError`.
+    """
     # We ONLY check for True here because can_handle may return a string
     # explaining why it can't handle a given source.
     handlers = [h for h in plugins() if h.can_handle(source) is True]
     installed_to = None
     for handler in handlers:
         try:
-            installed_to = handler.install(source)
+            installed_to = handler.install(source, *args, **kwargs)
         except UnhandledSource:
             pass
     if not installed_to:
@@ -336,7 +403,7 @@ def _run_apt_command(cmd, fatal=False):
         while result is None or result == APT_NO_LOCK:
             try:
                 result = subprocess.check_call(cmd, env=env)
-            except subprocess.CalledProcessError, e:
+            except subprocess.CalledProcessError as e:
                 retry_count = retry_count + 1
                 if retry_count > APT_NO_LOCK_RETRY_COUNT:
                     raise

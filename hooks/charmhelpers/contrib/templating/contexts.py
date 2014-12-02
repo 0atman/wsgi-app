@@ -6,6 +6,8 @@
 import os
 import yaml
 
+import six
+
 import charmhelpers.core.hookenv
 
 
@@ -40,13 +42,25 @@ def update_relations(context, namespace_separator=':'):
         relations = charmhelpers.core.hookenv.relations_of_type(relation_type)
         relations = [dict_keys_without_hyphens(rel) for rel in relations]
 
-    if 'relations_deprecated' not in context:
-        context['relations_deprecated'] = {}
-    if relation_type is not None:
-        relation_type = relation_type.replace('-', '_')
-        context['relations_deprecated'][relation_type] = relations
+    context['relations_full'] = charmhelpers.core.hookenv.relations()
 
-    context['relations'] = charmhelpers.core.hookenv.relations()
+    # the hookenv.relations() data structure is effectively unusable in
+    # templates and other contexts when trying to access relation data other
+    # than the current relation. So provide a more useful structure that works
+    # with any hook.
+    local_unit = charmhelpers.core.hookenv.local_unit()
+    relations = {}
+    for rname, rids in context['relations_full'].items():
+        relations[rname] = []
+        for rid, rdata in rids.items():
+            data = rdata.copy()
+            if local_unit in rdata:
+                data.pop(local_unit)
+            for unit_name, rel_data in data.items():
+                new_data = {'__relid__': rid, '__unit__': unit_name}
+                new_data.update(rel_data)
+                relations[rname].append(new_data)
+    context['relations'] = relations
 
 
 def juju_state_to_yaml(yaml_path, namespace_separator=':',
@@ -80,9 +94,9 @@ def juju_state_to_yaml(yaml_path, namespace_separator=':',
 
     # Don't use non-standard tags for unicode which will not
     # work when salt uses yaml.load_safe.
-    yaml.add_representer(unicode, lambda dumper,
-                         value: dumper.represent_scalar(
-                             u'tag:yaml.org,2002:str', value))
+    yaml.add_representer(six.text_type,
+                         lambda dumper, value: dumper.represent_scalar(
+                             six.u('tag:yaml.org,2002:str'), value))
 
     yaml_dir = os.path.dirname(yaml_path)
     if not os.path.exists(yaml_dir):
