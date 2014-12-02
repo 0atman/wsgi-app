@@ -9,13 +9,8 @@ import json
 import yaml
 import subprocess
 import sys
+import UserDict
 from subprocess import CalledProcessError
-
-import six
-if not six.PY3:
-    from UserDict import UserDict
-else:
-    from collections import UserDict
 
 CRITICAL = "CRITICAL"
 ERROR = "ERROR"
@@ -30,7 +25,7 @@ cache = {}
 def cached(func):
     """Cache return values for multiple executions of func + args
 
-    For example::
+    For example:
 
         @cached
         def unit_get(attribute):
@@ -72,12 +67,12 @@ def log(message, level=None):
     subprocess.call(command)
 
 
-class Serializable(UserDict):
+class Serializable(UserDict.IterableUserDict):
     """Wrapper, an object that can be serialized to yaml or json"""
 
     def __init__(self, obj):
         # wrap the object
-        UserDict.__init__(self)
+        UserDict.IterableUserDict.__init__(self)
         self.data = obj
 
     def __getattr__(self, attr):
@@ -161,15 +156,12 @@ def hook_name():
 
 
 class Config(dict):
-    """A dictionary representation of the charm's config.yaml, with some
-    extra features:
+    """A Juju charm config dictionary that can write itself to
+    disk (as json) and track which values have changed since
+    the previous hook invocation.
 
-    - See which values in the dictionary have changed since the previous hook.
-    - For values that have changed, see what the previous value was.
-    - Store arbitrary data for use in a later hook.
-
-    NOTE: Do not instantiate this object directly - instead call
-    ``hookenv.config()``, which will return an instance of :class:`Config`.
+    Do not instantiate this object directly - instead call
+    ``hookenv.config()``
 
     Example usage::
 
@@ -178,8 +170,8 @@ class Config(dict):
         >>> config = hookenv.config()
         >>> config['foo']
         'bar'
-        >>> # store a new key/value for later use
         >>> config['mykey'] = 'myval'
+        >>> config.save()
 
 
         >>> # user runs `juju set mycharm foo=baz`
@@ -196,40 +188,22 @@ class Config(dict):
         >>> # keys/values that we add are preserved across hooks
         >>> config['mykey']
         'myval'
+        >>> # don't forget to save at the end of hook!
+        >>> config.save()
 
     """
     CONFIG_FILE_NAME = '.juju-persistent-config'
 
     def __init__(self, *args, **kw):
         super(Config, self).__init__(*args, **kw)
-        self.implicit_save = True
         self._prev_dict = None
         self.path = os.path.join(charm_dir(), Config.CONFIG_FILE_NAME)
         if os.path.exists(self.path):
             self.load_previous()
 
-    def __getitem__(self, key):
-        """For regular dict lookups, check the current juju config first,
-        then the previous (saved) copy. This ensures that user-saved values
-        will be returned by a dict lookup.
-
-        """
-        try:
-            return dict.__getitem__(self, key)
-        except KeyError:
-            return (self._prev_dict or {})[key]
-
-    def keys(self):
-        prev_keys = []
-        if self._prev_dict is not None:
-            prev_keys = self._prev_dict.keys()
-        return list(set(prev_keys + list(dict.keys(self))))
-
     def load_previous(self, path=None):
-        """Load previous copy of config from disk.
-
-        In normal usage you don't need to call this method directly - it
-        is called automatically at object initialization.
+        """Load previous copy of config from disk so that current values
+        can be compared to previous values.
 
         :param path:
 
@@ -244,8 +218,8 @@ class Config(dict):
             self._prev_dict = json.load(f)
 
     def changed(self, key):
-        """Return True if the current value for this key is different from
-        the previous value.
+        """Return true if the value for this key has changed since
+        the last save.
 
         """
         if self._prev_dict is None:
@@ -254,7 +228,7 @@ class Config(dict):
 
     def previous(self, key):
         """Return previous value for this key, or None if there
-        is no previous value.
+        is no "previous" value.
 
         """
         if self._prev_dict:
@@ -264,17 +238,11 @@ class Config(dict):
     def save(self):
         """Save this config to disk.
 
-        If the charm is using the :mod:`Services Framework <services.base>`
-        or :meth:'@hook <Hooks.hook>' decorator, this
-        is called automatically at the end of successful hook execution.
-        Otherwise, it should be called directly by user code.
-
-        To disable automatic saves, set ``implicit_save=False`` on this
-        instance.
+        Preserves items in _prev_dict that do not exist in self.
 
         """
         if self._prev_dict:
-            for k, v in six.iteritems(self._prev_dict):
+            for k, v in self._prev_dict.iteritems():
                 if k not in self:
                     self[k] = v
         with open(self.path, 'w') as f:
@@ -289,8 +257,7 @@ def config(scope=None):
         config_cmd_line.append(scope)
     config_cmd_line.append('--format=json')
     try:
-        config_data = json.loads(
-            subprocess.check_output(config_cmd_line).decode('UTF-8'))
+        config_data = json.loads(subprocess.check_output(config_cmd_line))
         if scope is not None:
             return config_data
         return Config(config_data)
@@ -309,22 +276,21 @@ def relation_get(attribute=None, unit=None, rid=None):
     if unit:
         _args.append(unit)
     try:
-        return json.loads(subprocess.check_output(_args).decode('UTF-8'))
+        return json.loads(subprocess.check_output(_args))
     except ValueError:
         return None
-    except CalledProcessError as e:
+    except CalledProcessError, e:
         if e.returncode == 2:
             return None
         raise
 
 
-def relation_set(relation_id=None, relation_settings=None, **kwargs):
+def relation_set(relation_id=None, relation_settings={}, **kwargs):
     """Set relation information for the current unit"""
-    relation_settings = relation_settings if relation_settings else {}
     relation_cmd_line = ['relation-set']
     if relation_id is not None:
         relation_cmd_line.extend(('-r', relation_id))
-    for k, v in (list(relation_settings.items()) + list(kwargs.items())):
+    for k, v in (relation_settings.items() + kwargs.items()):
         if v is None:
             relation_cmd_line.append('{}='.format(k))
         else:
@@ -341,8 +307,7 @@ def relation_ids(reltype=None):
     relid_cmd_line = ['relation-ids', '--format=json']
     if reltype is not None:
         relid_cmd_line.append(reltype)
-        return json.loads(
-            subprocess.check_output(relid_cmd_line).decode('UTF-8')) or []
+        return json.loads(subprocess.check_output(relid_cmd_line)) or []
     return []
 
 
@@ -353,8 +318,7 @@ def related_units(relid=None):
     units_cmd_line = ['relation-list', '--format=json']
     if relid is not None:
         units_cmd_line.extend(('-r', relid))
-    return json.loads(
-        subprocess.check_output(units_cmd_line).decode('UTF-8')) or []
+    return json.loads(subprocess.check_output(units_cmd_line)) or []
 
 
 @cached
@@ -463,7 +427,7 @@ def unit_get(attribute):
     """Get the unit ID for the remote unit"""
     _args = ['unit-get', '--format=json', attribute]
     try:
-        return json.loads(subprocess.check_output(_args).decode('UTF-8'))
+        return json.loads(subprocess.check_output(_args))
     except ValueError:
         return None
 
@@ -481,29 +445,27 @@ class UnregisteredHookError(Exception):
 class Hooks(object):
     """A convenient handler for hook functions.
 
-    Example::
-
+    Example:
         hooks = Hooks()
 
         # register a hook, taking its name from the function name
         @hooks.hook()
         def install():
-            pass  # your code here
+            ...
 
         # register a hook, providing a custom hook name
         @hooks.hook("config-changed")
         def config_changed():
-            pass  # your code here
+            ...
 
         if __name__ == "__main__":
             # execute a hook based on the name the program is called by
             hooks.execute(sys.argv)
     """
 
-    def __init__(self, config_save=True):
+    def __init__(self):
         super(Hooks, self).__init__()
         self._hooks = {}
-        self._config_save = config_save
 
     def register(self, name, function):
         """Register a hook"""
@@ -514,10 +476,6 @@ class Hooks(object):
         hook_name = os.path.basename(args[0])
         if hook_name in self._hooks:
             self._hooks[hook_name]()
-            if self._config_save:
-                cfg = config()
-                if cfg.implicit_save:
-                    cfg.save()
         else:
             raise UnregisteredHookError(hook_name)
 
