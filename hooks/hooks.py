@@ -39,93 +39,26 @@ charm_dir = parent_dir(__file__)
 cache_dir = path.join(charm_dir, 'charm_cache')
 env_file_path = path.join(cache_dir, 'env.json')
 
-
-def ansible_config():
-    """
-    Build ansible config data, extending current config_data
-    and with the local unit name
-    """
-
-    config_data = config()
-    config_data['local_unit'] = local_unit()
-    return add_ansible_config(charm_dir, config_data)
-
-
-def update_target():
-    """
-    Run the "update-charm" make target within the project
-    """
-
-    log('Hook function: update_target')
-
-    config_data = ansible_config()
-
-    required_configs = [
-        'build_label',
-        'archive_filename',
-        'current_code_dir',
-        'update_make_target'
-    ]
-
-    # Check all required configs are set
-    if (
-        items_are_not_empty(config_data, required_configs)
-        and path.isdir(config_data['current_code_dir'])
-    ):
-        # Ensure make is installed
-        apt_output = sh.apt_get.install('make')
-        log('Installed make:')
-        log(str(apt_output))
-
-        env_vars = parse_json_file(env_file_path)
-
-        # Execute make target with all environment variables
-        make_output = sh.make(
-            config_data['update_make_target'],
-            directory=path.join(config_data['current_code_dir']),
-            _env=env_vars
-        )
-
-        log('Make output:')
-        log(str(make_output))
-
-
-def link_database(
-    scheme,
-    database_host,
-    port='',
-    username='',
-    password='',
-    database_name='',
-    variable_name='DATABASE_URL'
-):
-    """
-    Create a link with a database by setting an environment variable
-    The variable will be "DATABASE_URL" by default
-    """
-
-    database_url = build_url(
-        scheme=scheme,
-        domain=database_host,
-        port=port,
-        username=username,
-        password=password,
-        path=database_name
-    )
-
-    update_property_in_json_file(
-        env_file_path, variable_name, database_url
-    )
-
-    # Relation changed - re-run update target
-    update_target()
-
-    # Reset wsgi relation settings
-    wsgi_relation()
-
 # Hooks helper for the direct python hooks
 # (ansible hooks are run by ansible_hooks)
 hooks = Hooks()
+
+# Create the hooks helper which automatically registers the
+# required hooks based on the available tags in your playbook.
+# By default, running a hook (such as 'config-changed') will
+# result in running all tasks tagged with that hook name.
+ansible_hooks = charmhelpers.contrib.ansible.AnsibleHooks(
+    playbook_path='playbook.yml'
+)
+
+
+# Before anything else
+# - do preinstall hooks
+# - setup ansible
+@ansible_hooks.hook('install', 'upgrade-charm')
+def ansible_install():
+    execd_preinstall()
+    charmhelpers.contrib.ansible.install_ansible_support(from_ppa=True)
 
 
 @hooks.hook('wsgi-file-relation-changed')
@@ -382,26 +315,94 @@ def config_changed():
     mongodb_relation()
 
 
-# Create the hooks helper which automatically registers the
-# required hooks based on the available tags in your playbook.
-# By default, running a hook (such as 'config-changed') will
-# result in running all tasks tagged with that hook name.
-ansible_hooks = charmhelpers.contrib.ansible.AnsibleHooks(
-    playbook_path='playbook.yml'
-)
+# Helper functions
+# ===
+
+def ansible_config():
+    """
+    Build ansible config data, extending current config_data
+    and with the local unit name
+    """
+
+    config_data = config()
+    config_data['local_unit'] = local_unit()
+    return add_ansible_config(charm_dir, config_data)
+
+
+def update_target():
+    """
+    Run the "update-charm" make target within the project
+    """
+
+    log('Hook function: update_target')
+
+    config_data = ansible_config()
+
+    required_configs = [
+        'build_label',
+        'archive_filename',
+        'current_code_dir',
+        'update_make_target'
+    ]
+
+    # Check all required configs are set
+    if (
+        items_are_not_empty(config_data, required_configs)
+        and path.isdir(config_data['current_code_dir'])
+    ):
+        # Ensure make is installed
+        apt_output = sh.apt_get.install('make')
+        log('Installed make:')
+        log(str(apt_output))
+
+        env_vars = parse_json_file(env_file_path)
+
+        # Execute make target with all environment variables
+        make_output = sh.make(
+            config_data['update_make_target'],
+            directory=path.join(config_data['current_code_dir']),
+            _env=env_vars
+        )
+
+        log('Make output:')
+        log(str(make_output))
+
+
+def link_database(
+    scheme,
+    database_host,
+    port='',
+    username='',
+    password='',
+    database_name='',
+    variable_name='DATABASE_URL'
+):
+    """
+    Create a link with a database by setting an environment variable
+    The variable will be "DATABASE_URL" by default
+    """
+
+    database_url = build_url(
+        scheme=scheme,
+        domain=database_host,
+        port=port,
+        username=username,
+        password=password,
+        path=database_name
+    )
+
+    update_property_in_json_file(
+        env_file_path, variable_name, database_url
+    )
+
+    # Relation changed - re-run update target
+    update_target()
+
+    # Reset wsgi relation settings
+    wsgi_relation()
+
 
 if __name__ == "__main__":
-    # Before anything else
-    # - do preinstall hooks
-    # - setup ansible
-    if sys.argv[0] == 'hooks/install':
-        execd_preinstall()
-        charmhelpers.contrib.ansible.install_ansible_support(from_ppa=True)
-
-    # Run ansible hooks first
-    ansible_hooks.execute(sys.argv)
-    hooks.execute(sys.argv)
-
     # Run ansible hooks first
     ansible_hooks.execute(sys.argv)
     hooks.execute(sys.argv)
