@@ -1,10 +1,15 @@
 name: wsgi-app
-summary: Bootstrap your wsgi service charm.
-maintainer: Developer Account <Developer.Account@localhost>
+summary: A charm for running Python WSGI applications
+maintainer: Robin Winslow <robin.winslow@canonical.com>
 description: |
-  <Multi-line description here>
+  This charm should be able to serve most simple WSGI applications.
+  It can hook into postgresql or mongodb databases (whose locations
+  will be available to the app as DATABASE_URL and MONGO_URL environment
+  variables), provides HTTP interfaces for load-balancing, and you can
+  pass any extra environment variables for your application
+  through the environment_variables config option.
 categories:
-  - misc
+  - app-servers
 subordinate: false
 provides:
     website:
