@@ -29,7 +29,8 @@ from charmhelpers.core.hookenv import (
     relation_get,
     relation_ids,
     relation_set,
-    relations
+    relations,
+    UnregisteredHookError
 )
 from charmhelpers.core.host import log
 from charmhelpers.payload.execd import execd_preinstall
@@ -403,6 +404,14 @@ def link_database(
 
 
 if __name__ == "__main__":
+    hook_name = sys.argv[0].replace('hooks/', '')
+
+    # Check for erroneous hooks
+    if hook_name not in ansible_hooks._hooks.keys() + hooks._hooks.keys():
+        raise UnregisteredHookError(hook_name)
+
     # Run ansible hooks first
-    ansible_hooks.execute(sys.argv)
-    hooks.execute(sys.argv)
+    if hook_name in ansible_hooks._hooks.keys():
+        ansible_hooks.execute(sys.argv)
+    if hook_name in hooks._hooks.keys():
+        hooks.execute(sys.argv)
