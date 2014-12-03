@@ -404,14 +404,17 @@ def link_database(
 
 
 if __name__ == "__main__":
-    hook_name = sys.argv[0].replace('hooks/', '')
-
-    # Check for erroneous hooks
-    if hook_name not in ansible_hooks._hooks.keys() + hooks._hooks.keys():
-        raise UnregisteredHookError(hook_name)
+    ansible_failed = False
 
     # Run ansible hooks first
-    if hook_name in ansible_hooks._hooks.keys():
+    try:
         ansible_hooks.execute(sys.argv)
-    if hook_name in hooks._hooks.keys():
+    except UnregisteredHookError:
+        ansible_failed = True
+
+    # Then try regular hooks
+    try:
         hooks.execute(sys.argv)
+    except UnregisteredHookError as hook_error:
+        if ansible_failed:
+            raise hook_error
