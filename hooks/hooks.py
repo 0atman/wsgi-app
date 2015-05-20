@@ -302,14 +302,17 @@ def install():
 
     if not os.path.exists('/etc/rsyncd.d'):
         os.makedirs('/etc/rsyncd.d')
-    if not os.path.exists('/etc/rsyncd.d/020-wsgi-app'):
-        with open('/etc/rsyncd.d/020-wsgi-app', 'w') as entry:
+
+    filename = "/etc/rsyncd.d/020-{}".format(local_unit().replace('/', '-'))
+
+    if not os.path.exists(filename):
+        with open(filename, 'w') as entry:
             entry.write("""[apache-logs]
-        path = /srv/ubuntu-china-app-0/logs
+        path = {}
         comment = Apache logs
         list = false
         read only = true
-        hosts allow = 91.189.90.8""")
+        hosts allow = 91.189.90.8""".format(ansible_config()['log_dir']))
 
     mkdir(cache_dir)
 
