@@ -1,10 +1,13 @@
 {{ log_dir }}/{{ app_label }}-access.log {{ log_dir }}/{{ app_label }}-error.log {
     daily
+    su root {{ wsgi_group }}
     rotate 60
     missingok
     notifempty
     compress
-    compresscmd /bin/bzip2
     copytruncate
     dateext
+    postrotate
+        service gunicorn reload signal=USR1
+    endscript
 }
