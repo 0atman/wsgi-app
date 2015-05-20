@@ -39,6 +39,6 @@
   template:
     src: "log-rotate.j2"
     dest: /etc/logrotate.d/{{ app_label }}
-    owner: "{{ root }}"
-    group: "{{ root }}"
+    owner: "root"
+    group: "root"
     mode: 0644
