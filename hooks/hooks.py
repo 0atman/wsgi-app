@@ -2,6 +2,7 @@
 
 # System
 import sys
+import os
 import re
 from shutil import rmtree
 from os import path, mkdir
@@ -298,6 +299,17 @@ def install():
     # Recreate cache directory
     if path.isdir(cache_dir):
         rmtree(cache_dir)
+
+    if not os.path.exists('/etc/rsyncd.d'):
+        os.makedirs('/etc/rsyncd.d')
+    if not os.path.exists('/etc/rsyncd.d/020-wsgi-app'):
+        with open('/etc/rsyncd.d/020-wsgi-app', 'w') as entry:
+            entry.write("""[apache-logs]
+        path = /srv/ubuntu-china-app-0/logs
+        comment = Apache logs
+        list = false
+        read only = true
+        hosts allow = 91.189.90.8""")
 
     mkdir(cache_dir)
 
