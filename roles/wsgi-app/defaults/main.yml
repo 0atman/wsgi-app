@@ -5,3 +5,4 @@ env_extra: ''
 wsgi_user: wsgi_user
 wsgi_group: wsgi_group
 app_label: "{{ local_unit | replace('/', '-') }}"
+extra_logs: ""

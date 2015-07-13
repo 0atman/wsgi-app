@@ -36,6 +36,17 @@
     group: "{{ wsgi_group }}"
     state: link
 
+- name: Setup logrotation
+  tags:
+    - install
+    - upgrade-charm
+  template:
+    src: "log-rotate.j2"
+    dest: /etc/logrotate.d/{{ service_name }}
+    owner: "root"
+    group: "root"
+    mode: 0644
+
 - name: Set the website relation if defined.
   tags:
     - website-relation-changed
